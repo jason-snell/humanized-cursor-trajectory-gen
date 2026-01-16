@@ -6,6 +6,11 @@ Generates intermediate points between a start X,Y and end X,Y. Useful against an
 
 I trained this late 2023 on a dataset of my own cursor movement. If I come across the data, I will add here.
 
+Video demonstrating the data collection interface, with the trained model automating the clicks (https://www.youtube.com/watch?v=eyEzAjEbgxI)
+
+
+https://github.com/user-attachments/assets/84be3cda-3fd4-42cc-bd58-e943f99d0f66
+
 There are two separate projects.
 
 `TrajectoryGeneratorAPI` is an API implementation, which can be tested here: https://jsnell.dev/trajectory/
