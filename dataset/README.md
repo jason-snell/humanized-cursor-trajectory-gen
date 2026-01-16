@@ -4,8 +4,12 @@ This dataset contains ~8000 cursor movement trajectories collected by manually c
 
 A button was randomly placed on a webpage. When clicked, it moved to a new random location. Cursor movements between clicks were logged, creating trajectories from the previous button position to the next.
 
-Video demonstrating the data collection interface, with the trained model automating the clicks
-![Demo](demo.mp4)
+Video demonstrating the data collection interface, with the trained model automating the clicks (https://www.youtube.com/watch?v=eyEzAjEbgxI)
+
+
+https://github.com/user-attachments/assets/84be3cda-3fd4-42cc-bd58-e943f99d0f66
+
+
 
 ## Data Format
 
