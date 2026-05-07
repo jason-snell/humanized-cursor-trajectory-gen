@@ -59,6 +59,13 @@ namespace HumanizedTrajectoryGen
 
         static List<int[]>? Predict(int[] originalStart, int[] originalEnd, double randomnessFactor)
         {
+            if (!TryValidatePoint(originalStart, nameof(originalStart), out var startError) ||
+                !TryValidatePoint(originalEnd, nameof(originalEnd), out var endError))
+            {
+                Console.WriteLine(startError ?? endError);
+                return null;
+            }
+
             if (!File.Exists(onnxPath))
             {
                 Console.WriteLine($"Error: ONNX model not found at '{onnxPath}'. Please ensure it's in the correct directory.");
@@ -67,9 +74,6 @@ namespace HumanizedTrajectoryGen
 
             using var session = new InferenceSession(onnxPath);
 
-            float largest = Math.Max(Math.Max(originalStart[0], originalStart[1]), Math.Max(originalEnd[0], originalEnd[1]));
-            largest += largest / 2;
-
             float[] inputData = new float[4];
 
             inputData[0] = originalStart[0] + (float)(Utils.rand.NextDouble() * 2 * randomnessFactor - randomnessFactor);
@@ -77,6 +81,8 @@ namespace HumanizedTrajectoryGen
 
             inputData[2] = originalEnd[0] + (float)(Utils.rand.NextDouble() * 2 * randomnessFactor - randomnessFactor);
             inputData[3] = originalEnd[1] + (float)(Utils.rand.NextDouble() * 2 * randomnessFactor - randomnessFactor);
+
+            float largest = GetNormalizationScale(inputData);
 
             var inputName = session.InputMetadata.Keys.First();
 
@@ -131,6 +137,29 @@ namespace HumanizedTrajectoryGen
             }
 
             return result;
+        }
+
+        static bool TryValidatePoint(int[]? point, string label, out string? error)
+        {
+            if (point == null || point.Length != 2)
+            {
+                error = $"Error: {label} must contain exactly two integer values.";
+                return false;
+            }
+
+            error = null;
+            return true;
+        }
+
+        static float GetNormalizationScale(IEnumerable<float> values)
+        {
+            var largestMagnitude = values.Select(Math.Abs).DefaultIfEmpty(0f).Max();
+            if (largestMagnitude < 1f)
+            {
+                return 1f;
+            }
+
+            return largestMagnitude * 1.5f;
         }
     }
 }

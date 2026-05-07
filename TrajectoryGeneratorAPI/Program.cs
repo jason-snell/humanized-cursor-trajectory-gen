@@ -54,6 +54,13 @@ namespace TrajectoryGeneratorAPI
                         return;
                     }
 
+                    if (!TryValidatePoint(request.Start, nameof(request.Start), out var pointError) ||
+                        !TryValidatePoint(request.End, nameof(request.End), out pointError))
+                    {
+                        await context.Write(new ErrorResponseMessage(pointError!), statusCode: HttpStatusCode.BadRequest);
+                        return;
+                    }
+
                     if(request.Points.HasValue)
                     {
                         request.Points = Math.Clamp(request.Points.Value, 5, 500);
@@ -86,6 +93,13 @@ namespace TrajectoryGeneratorAPI
 
         static List<int[]>? Predict(int[] originalStart, int[] originalEnd, double randomnessFactor, int? numPoints = null)
         {
+            if (!TryValidatePoint(originalStart, nameof(originalStart), out var startError) ||
+                !TryValidatePoint(originalEnd, nameof(originalEnd), out var endError))
+            {
+                Console.WriteLine(startError ?? endError);
+                return null;
+            }
+
             if (session == null)
             {
                 Console.WriteLine($"model not loaded");
@@ -97,17 +111,18 @@ namespace TrajectoryGeneratorAPI
             float randomizedEndX = originalEnd[0] + (float)(random.NextDouble() * 2 * randomnessFactor - randomnessFactor);
             float randomizedEndY = originalEnd[1] + (float)(random.NextDouble() * 2 * randomnessFactor - randomnessFactor);
 
-            float largest = Math.Max(Math.Max(randomizedStartX, randomizedStartY), Math.Max(randomizedEndX, randomizedEndY));
-            if (largest <= 0)
-            {
-                largest = Math.Max(Math.Max(originalStart[0], originalStart[1]), Math.Max(originalEnd[0], originalEnd[1]));
-            }
-
             float[] inputData = new float[4];
-            inputData[0] = randomizedStartX / largest;
-            inputData[1] = randomizedStartY / largest;
-            inputData[2] = randomizedEndX / largest;
-            inputData[3] = randomizedEndY / largest;
+            inputData[0] = randomizedStartX;
+            inputData[1] = randomizedStartY;
+            inputData[2] = randomizedEndX;
+            inputData[3] = randomizedEndY;
+
+            float largest = GetNormalizationScale(inputData);
+
+            inputData[0] /= largest;
+            inputData[1] /= largest;
+            inputData[2] /= largest;
+            inputData[3] /= largest;
 
             var inputName = session.InputMetadata.Keys.First();
             var inputTensor = new DenseTensor<float>(inputData, new int[] { 1, 2, 2 });
@@ -209,6 +224,29 @@ namespace TrajectoryGeneratorAPI
             }
 
             return result;
+        }
+
+        static bool TryValidatePoint(int[]? point, string label, out string? error)
+        {
+            if (point == null || point.Length != 2)
+            {
+                error = $"Invalid request data. {label} must contain exactly two integer values.";
+                return false;
+            }
+
+            error = null;
+            return true;
+        }
+
+        static float GetNormalizationScale(IEnumerable<float> values)
+        {
+            var largestMagnitude = values.Select(Math.Abs).DefaultIfEmpty(0f).Max();
+            if (largestMagnitude < 1f)
+            {
+                return 1f;
+            }
+
+            return largestMagnitude * 1.5f;
         }
     }
 
